@@ -5,6 +5,7 @@ import com.fnrc.chess.ChessPiece;
 import com.fnrc.chess.ChessPosition;
 import com.fnrc.chess.Color;
 
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.InputMismatchException;
 import java.util.List;
@@ -22,9 +23,9 @@ public class UI {
         System.out.flush();
     }
 
-    public static ChessPosition readChessPosition(Scanner sc) {
+    public static ChessPosition readChessPosition(Connection connection) {
         try {
-            String s = sc.nextLine();
+            String s = connection.receiveMessage();
             char column = s.charAt(0);
             int row = Integer.parseInt(s.substring(1));
             return new ChessPosition(column, row);
