@@ -17,98 +17,170 @@ import java.util.Scanner;
 
 class Main {
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
         Connection connection = new Connection();
+        Object turnLock = new Object();
 
-        String message = "";
-        while (message != null && !message.equals("macth")) message = connection.receiveMessage();;
+        String message = connection.receiveMessage();
+        while (!message.equals("match")) {
+            message = connection.receiveMessage();
+        }
 
-        ObjectMapper mapper = new ObjectMapper();
-
+        System.out.println("Match started!");
         ChessMatch chessMatch = new ChessMatch();
         List<ChessPiece> captured = new ArrayList<>();
 
         while(!chessMatch.getCheckMate()) {
             try {
                 Color color = connection.getColor();
-
-                System.out.println("color turn: " + chessMatch.getCurrentPlayer());
-                System.out.println("color: " + color);
-
                 UI.clearScreen();
-                UI.printMatch(chessMatch, captured);
+                UI.printMatch(chessMatch, captured, color);
 
-                if (chessMatch.getCurrentPlayer().getColor().equals(color)) {
-                    System.out.println();
-                    System.out.print("Selecione a peça que deseja mover: ");
-                    ChessPosition source = UI.readChessPosition(connection);
+                Thread sendMovimment = new Thread(() -> {
+                   if(color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+                        System.out.print("Informe a posição de origem: ");
+                        ChessPosition source = UI.readChessPosition(scanner);
 
-                    boolean[][] possibleMoves = chessMatch.possibleMoves(source);
-                    UI.clearScreen();
-                    UI.printBoard(chessMatch.getPieces(), possibleMoves);
+                        boolean[][] possibleMoves = chessMatch.possibleMoves(source);
+                        UI.clearScreen();
+                        UI.printBoard(chessMatch.getPieces(), possibleMoves);
 
-                    System.out.println();
-                    System.out.println("Informe a posição alvo: ");
-                    UI.readChessPosition(connection);
-                    ChessPosition target = UI.readChessPosition(connection);
+                        System.out.print("Informe a posição alvo: ");
+                        ChessPosition target = UI.readChessPosition(scanner);
 
-                    ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
 
-                    if (capturedPiece != null)  captured.add(capturedPiece);
+                        if(capturedPiece != null) captured.add(capturedPiece);
 
-                    if (chessMatch.getPromoted() != null) {
-                        System.out.print("Enter piece for promotion (B/N/R/Q): ");
-                        String type = connection.receiveMessage().toUpperCase();
-                        while (!type.equals("B") && !type.equals("N") && !type.equals("R") & !type.equals("Q")) {
-                            System.out.print("Invalid value! Enter piece for promotion (B/N/R/Q): ");
-                            type = connection.receiveMessage().toUpperCase();
+                        if(chessMatch.getPromoted() != null) {
+                            System.out.print("Enter piece for promotion (B/N/R/Q): ");
+                            String type = scanner.nextLine().toUpperCase();
+                            while(!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")) {
+                                System.out.print("Invalid value! Enter piece for promotion (B/N/R/Q): ");
+                                type = scanner.nextLine().toUpperCase();
+                            }
+                            chessMatch.replacePromotedPiece(type);
                         }
-                        chessMatch.replacePromotedPiece(type);
-                    }
 
-                    String sourceJson = mapper.writeValueAsString(source);
-                    String targetJson = mapper.writeValueAsString(target);
-                    connection.sendMessage(sourceJson);
-                    connection.sendMessage(targetJson);
-                }
-                else {
-                    String sourceJson = connection.receiveMessage();
-                    String targetJson = connection.receiveMessage();
+                        connection.sendMessage(source.toString() + " " + target.toString());
+                   }
+                });
 
-                    while(sourceJson == null || targetJson == null) {
-                        sourceJson = connection.receiveMessage();
-                        targetJson = connection.receiveMessage();
-                    }
+                Thread receiveMovimment = new Thread(() -> {
+                    if(!color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+                        System.out.println("Aguardando a jogada do oponente...");
 
-                    ChessPosition source = mapper.readValue(sourceJson, ChessPosition.class);
-                    ChessPosition target = mapper.readValue(targetJson, ChessPosition.class);
+                        String[] movimment = connection.receiveMessage().split(" ");
 
-                    ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+                        String sourceString = movimment[0];
+                        char sourceCol = sourceString.charAt(0);
+                        int sourceRow = Integer.parseInt(sourceString.substring(1));
 
-                    if (capturedPiece != null)  captured.add(capturedPiece);
+                        String targetString = movimment[1];
+                        char targetCol = targetString.charAt(0);
+                        int targetRow = Integer.parseInt(targetString.substring(1));
 
-                    if (chessMatch.getPromoted() != null) {
-                        System.out.print("Enter piece for promotion (B/N/R/Q): ");
-                        String type = connection.receiveMessage().toUpperCase();
-                        while (!type.equals("B") && !type.equals("N") && !type.equals("R") & !type.equals("Q")) {
-                            System.out.print("Invalid value! Enter piece for promotion (B/N/R/Q): ");
-                            type = connection.receiveMessage().toUpperCase();
+                        ChessPosition source = new ChessPosition(sourceCol, sourceRow);
+                        ChessPosition target = new ChessPosition(targetCol, targetRow);
+
+                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+                        if(capturedPiece != null) captured.add(capturedPiece);
+
+                        if(chessMatch.getPromoted() != null) {
+                            System.out.println("Oponente promoveu uma peça.");
                         }
-                        chessMatch.replacePromotedPiece(type);
                     }
-                }
-            }
-            catch (ChessException e) {
-                System.out.println(e.getMessage());
-            }
-            catch (InputMismatchException e) {
-                System.out.println(e.getMessage());
-            } catch (JsonProcessingException e) {
-                System.out.println("Erro de serialização");
-            }
+                });
 
-            UI.clearScreen();
-            UI.printMatch(chessMatch, captured);
+                sendMovimment.start();
+                receiveMovimment.start();
+
+                sendMovimment.join();
+                receiveMovimment.join();
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
+
+//        while (!chessMatch.getCheckMate()) {
+//            try {
+//                Color color = connection.getColor();
+//
+//                    UI.clearScreen();
+//                    UI.printMatch(chessMatch, captured, color);
+//
+//                    if (color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+//                        System.out.print("Informe a posição de origem: ");
+//                        ChessPosition source = UI.readChessPosition(scanner);
+//
+//                        boolean[][] possibleMoves = chessMatch.possibleMoves(source);
+//                        UI.clearScreen();
+//                        UI.printBoard(chessMatch.getPieces(), possibleMoves);
+//
+//                        System.out.print("Informe a posição alvo: ");
+//                        ChessPosition target = UI.readChessPosition(scanner);
+//
+//
+//                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+//                        if (capturedPiece != null) captured.add(capturedPiece);
+//
+//                        if (chessMatch.getPromoted() != null) {
+//                            System.out.print("Enter piece for promotion (B/N/R/Q): ");
+//                            String type = scanner.nextLine().toUpperCase();
+//                            while (!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")) {
+//                                System.out.print("Invalid value! Enter piece for promotion (B/N/R/Q): ");
+//                                type = scanner.nextLine().toUpperCase();
+//                            }
+//                            chessMatch.replacePromotedPiece(type);
+//                        }
+//
+//
+//                        ObjectMapper mapper = new ObjectMapper();
+//                        connection.sendMessage(mapper.writeValueAsString(source));
+//                        connection.sendMessage(mapper.writeValueAsString(target));
+//
+//
+//                    } else {
+//                        System.out.println("Aguardando a jogada do oponente...");
+//                        ObjectMapper mapper = new ObjectMapper();
+//
+//                        System.out.println("chegou aqui");
+//
+//                        String sourceJson = connection.receiveMessage();
+//                        String targetJson = connection.receiveMessage();
+//
+//                        while (sourceJson == null || targetJson == null) {
+//                            sourceJson = connection.receiveMessage();
+//                            targetJson = connection.receiveMessage();
+//                        }
+//
+//                        ChessPosition source = mapper.readValue(sourceJson, ChessPosition.class);
+//                        ChessPosition target = mapper.readValue(targetJson, ChessPosition.class);
+//
+//                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+//                        if (capturedPiece != null) captured.add(capturedPiece);
+//
+//                        if (chessMatch.getPromoted() != null) {
+//                            System.out.println("Oponente promoveu uma peça.");
+//                        }
+//
+//                        turnLock.notify();
+//                        turnLock.wait();
+//                    }
+//                }
+//            } catch (ChessException e) {
+//                System.out.println(e.getMessage());
+//            } catch (InputMismatchException e) {
+//                System.out.println(e.getMessage());
+//            } catch (InterruptedException | JsonProcessingException e) {
+//                throw new RuntimeException(e);
+//            }
+//
+//            UI.clearScreen();
+//            UI.printMatch(chessMatch, captured, connection.getColor());
+//        }
+
         connection.close();
     }
 }

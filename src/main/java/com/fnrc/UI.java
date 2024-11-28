@@ -23,9 +23,9 @@ public class UI {
         System.out.flush();
     }
 
-    public static ChessPosition readChessPosition(Connection connection) {
+    public static ChessPosition readChessPosition(Scanner scanner) {
         try {
-            String s = connection.receiveMessage();
+            String s = scanner.nextLine();
             char column = s.charAt(0);
             int row = Integer.parseInt(s.substring(1));
             return new ChessPosition(column, row);
@@ -35,14 +35,19 @@ public class UI {
         }
     }
 
-    public static void printMatch(ChessMatch chessMatch, List<ChessPiece> captured) {
+    public static void printMatch(ChessMatch chessMatch, List<ChessPiece> captured, Color color) {
         printBoard(chessMatch.getPieces());
         System.out.println();
         printCapturedPieces(captured);
         System.out.println();
         System.out.println("Turno : " + chessMatch.getTurn());
         if (!chessMatch.getCheckMate()) {
-            System.out.println("Aguardando o oponente");
+            if(color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+                System.out.println("Sua vez de jogar!");
+            }
+            else {
+                System.out.println("Esperando jogada do OPONENTE...");
+            }
             if (chessMatch.getCheck()) {
                 System.out.println("CHECK!");
             }

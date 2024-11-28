@@ -27,9 +27,7 @@ public class Connection {
 
             System.out.println("Você jogará do lado " + this.color.getColor() + ".");
             if(this.color.equals(Color.WHITE)) System.out.println("Aguardando um oponente.");
-
-            String match = this.receiveMessage();
-            if(match.equals("match")) System.out.println("Partida iniciada!");
+            else System.out.println("Oponente conectado.");
         }
         catch (IOException e) {
             throw new RuntimeException("Erro ao conectar com o servidor: " + e.getMessage());
@@ -75,6 +73,5 @@ public class Connection {
         }
         return null;
     }
-
 
 }
