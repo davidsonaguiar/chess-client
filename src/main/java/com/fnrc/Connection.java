@@ -8,8 +8,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import static java.lang.System.exit;
+
 public class Connection {
-    private final String HOST = "localhost";
+    private final String HOST = "10.1.1.18";
     private final int PORT = 8080;
     private final Socket client;
     private final BufferedReader serverInput;
@@ -30,27 +32,20 @@ public class Connection {
             else System.out.println("Oponente conectado.");
         }
         catch (IOException e) {
-            throw new RuntimeException("Erro ao conectar com o servidor: " + e.getMessage());
+            System.out.println("Erro ao conectar ao servidor: " + e.getMessage());
+            throw new RuntimeException("Erro ao conectar ao servidor: " + e.getMessage());
         }
         catch (IllegalArgumentException e) {
             throw new RuntimeException("Cor inválida: " + e.getMessage());
         }
     }
 
-    public Socket getClient() {
-        return this.client;
-    }
-
-    public BufferedReader getServerInput() {
-        return this.serverInput;
-    }
-
-    public PrintWriter getServerOutput() {
-        return this.serverOutput;
-    }
-
     public Color getColor() {
         return this.color;
+    }
+
+    public Boolean isConnected() {
+        return this.client.isConnected();
     }
 
     public void close() {
