@@ -16,9 +16,15 @@ import java.util.List;
 import java.util.Scanner;
 
 class Main {
+    private static String host = "localhost";
+    private static Integer port = 8080;
+
     public static void main(String[] args) {
+        String host = args.length > 0 ? args[0] : Main.host;
+        Integer port = args.length > 1 ? Integer.parseInt(args[1]) : Main.port;
+
+        Connection connection = new Connection(host, port);
         Scanner scanner = new Scanner(System.in);
-        Connection connection = new Connection();
 
         String message = connection.receiveMessage();
         while (!message.equals("match")) {

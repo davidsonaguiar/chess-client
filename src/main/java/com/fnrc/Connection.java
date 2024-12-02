@@ -8,23 +8,20 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-import static java.lang.System.exit;
-
 public class Connection {
-    private final String HOST = "10.1.1.18";
-    private final int PORT = 8080;
     private final Socket client;
     private final BufferedReader serverInput;
     private final PrintWriter serverOutput;
     private final Color color;
 
-    public Connection() {
+    public Connection(String host, Integer port) {
         try {
-            this.client = new Socket(HOST, PORT);
+            this.client = new Socket(host, port);
             this.serverInput = new BufferedReader(new InputStreamReader(client.getInputStream()));
             this.serverOutput = new PrintWriter(client.getOutputStream(), true);
 
             String color = this.receiveMessage();
+            System.out.println(color);
             this.color = Color.getColor(color);
 
             System.out.println("Você jogará do lado " + this.color.getColor() + ".");
