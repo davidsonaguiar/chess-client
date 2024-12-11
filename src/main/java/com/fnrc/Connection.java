@@ -21,12 +21,18 @@ public class Connection {
             this.serverOutput = new PrintWriter(client.getOutputStream(), true);
 
             String color = this.receiveMessage();
-            System.out.println(color);
             this.color = Color.getColor(color);
 
-            System.out.println("Você jogará do lado " + this.color.getColor() + ".");
-            if(this.color.equals(Color.WHITE)) System.out.println("Aguardando um oponente.");
-            else System.out.println("Oponente conectado.");
+            System.out.println();
+            System.out.println("Você é o jogador " + this.color);
+
+            if(this.color == Color.WHITE) {
+                System.out.println("Aguardando um oponente...");
+            }
+            else {
+                System.out.println("Oponente encontrato...");
+            }
+            System.out.println();
         }
         catch (IOException e) {
             System.out.println("Erro ao conectar ao servidor: " + e.getMessage());
