@@ -47,15 +47,11 @@ public class Connection {
         return this.color;
     }
 
-    public Boolean isConnected() {
-        return this.client.isConnected();
-    }
-
     public void close() {
         try {
             this.client.close();
         } catch (IOException e) {
-            System.out.println("Erro ao fechar a conexão: " + e.getMessage());
+            throw new RuntimeException("Erro ao fechar a conexão: ");
         }
     }
 
@@ -67,9 +63,8 @@ public class Connection {
         try {
             return this.serverInput.readLine();
         } catch (IOException e) {
-            System.out.println("Erro ao receber mensagem: " + e.getMessage());
+            throw new RuntimeException("Erro ao receber mensagem: " + e.getMessage());
         }
-        return null;
     }
 
 }

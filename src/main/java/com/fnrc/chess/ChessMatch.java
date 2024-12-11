@@ -18,6 +18,7 @@ public class ChessMatch {
     private boolean checkMate;
     private ChessPiece enPassantVulnerable;
     private ChessPiece promoted;
+    private boolean failedConnection = false;
 
     private final List<Piece> piecesOnTheBoard = new ArrayList<>();
     private List<Piece> capturedPieces = new ArrayList<>();
@@ -61,6 +62,14 @@ public class ChessMatch {
             }
         }
         return mat;
+    }
+
+    public boolean getFailedConnection() {
+        return failedConnection;
+    }
+
+    public void setFailedConnection(boolean failedConnection) {
+        this.failedConnection = failedConnection;
     }
 
     public boolean[][] possibleMoves(ChessPosition sourcePosition) {

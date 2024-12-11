@@ -74,34 +74,50 @@ class Main {
                     }
                     catch (RuntimeException e) {
                         System.out.println();
-                        System.out.println(e.getMessage());
+                        System.out.println("*** " + e.getMessage() + " ***");
                         System.out.println();
                     }
                 });
 
                 Thread receiveMovimment = new Thread(() -> {
-                    if(!color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
-                        String[] movimment = connection.receiveMessage().split(" ");
+                    try {
+                        if(!color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+                            String messageReceived = connection.receiveMessage();
+                            if(messageReceived == null) throw new Exception("Erro ao receber mensagem.");
+                            String[] movimment = messageReceived.split(" ");
 
-                        String sourceString = movimment[0];
-                        char sourceCol = sourceString.charAt(0);
-                        int sourceRow = Integer.parseInt(sourceString.substring(1));
+                            String sourceString = movimment[0];
+                            char sourceCol = sourceString.charAt(0);
+                            int sourceRow = Integer.parseInt(sourceString.substring(1));
 
-                        String targetString = movimment[1];
-                        char targetCol = targetString.charAt(0);
-                        int targetRow = Integer.parseInt(targetString.substring(1));
+                            String targetString = movimment[1];
+                            char targetCol = targetString.charAt(0);
+                            int targetRow = Integer.parseInt(targetString.substring(1));
 
-                        ChessPosition source = new ChessPosition(sourceCol, sourceRow);
-                        ChessPosition target = new ChessPosition(targetCol, targetRow);
+                            ChessPosition source = new ChessPosition(sourceCol, sourceRow);
+                            ChessPosition target = new ChessPosition(targetCol, targetRow);
 
-                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
-                        if(capturedPiece != null) captured.add(capturedPiece);
+                            ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+                            if(capturedPiece != null) captured.add(capturedPiece);
 
-                        if(chessMatch.getPromoted() != null) {
-                            System.out.println("Oponente promoveu uma peça.");
+                            if(chessMatch.getPromoted() != null) {
+                                System.out.println("Oponente promoveu uma peça.");
+                            }
                         }
                     }
+                    catch (RuntimeException e) {
+                        System.out.println();
+                        System.out.println(e.getMessage());
+                        System.out.println();
+                    } catch (Exception e) {
+                        chessMatch.setFailedConnection(true);
+                    }
                 });
+
+                if(chessMatch.getFailedConnection()) {
+                    System.out.println("Conexão perdida.");
+                    break;
+                }
 
                 sendMovimment.start();
                 receiveMovimment.start();
@@ -110,7 +126,8 @@ class Main {
                 receiveMovimment.join();
             }
             catch (Exception e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
+                break;
             }
         }
 
