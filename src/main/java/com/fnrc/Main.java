@@ -29,6 +29,7 @@ class Main {
         String message = connection.receiveMessage();
         while (!message.equals("match")) {
             message = connection.receiveMessage();
+            System.out.println(message);
         }
 
         System.out.println("Match started!");
@@ -42,60 +43,81 @@ class Main {
                 UI.printMatch(chessMatch, captured, color);
 
                 Thread sendMovimment = new Thread(() -> {
-                   if(color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
-                        System.out.print("Informe a posição de origem: ");
-                        ChessPosition source = UI.readChessPosition(scanner);
+                    try {
+                        if(color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+                            System.out.print("Informe a posição de origem: ");
+                            ChessPosition source = UI.readChessPosition(scanner);
 
-                        boolean[][] possibleMoves = chessMatch.possibleMoves(source);
-                        UI.clearScreen();
-                        UI.printBoard(chessMatch.getPieces(), possibleMoves);
+                            boolean[][] possibleMoves = chessMatch.possibleMoves(source);
+                            UI.clearScreen();
+                            UI.printBoard(chessMatch.getPieces(), possibleMoves);
 
-                        System.out.print("Informe a posição alvo: ");
-                        ChessPosition target = UI.readChessPosition(scanner);
+                            System.out.print("Informe a posição alvo: ");
+                            ChessPosition target = UI.readChessPosition(scanner);
 
-                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+                            ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
 
-                        if(capturedPiece != null) captured.add(capturedPiece);
+                            if(capturedPiece != null) captured.add(capturedPiece);
 
-                        if(chessMatch.getPromoted() != null) {
-                            System.out.print("Enter piece for promotion (B/N/R/Q): ");
-                            String type = scanner.nextLine().toUpperCase();
-                            while(!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")) {
-                                System.out.print("Invalid value! Enter piece for promotion (B/N/R/Q): ");
-                                type = scanner.nextLine().toUpperCase();
+                            if(chessMatch.getPromoted() != null) {
+                                System.out.print("Enter piece for promotion (B/N/R/Q): ");
+                                String type = scanner.nextLine().toUpperCase();
+                                while(!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")) {
+                                    System.out.print("Invalid value! Enter piece for promotion (B/N/R/Q): ");
+                                    type = scanner.nextLine().toUpperCase();
+                                }
+                                chessMatch.replacePromotedPiece(type);
                             }
-                            chessMatch.replacePromotedPiece(type);
-                        }
 
-                        connection.sendMessage(source.toString() + " " + target.toString());
-                   }
+                            connection.sendMessage(source.toString() + " " + target.toString());
+                        }
+                    }
+                    catch (RuntimeException e) {
+                        System.out.println();
+                        System.out.println("*** " + e.getMessage() + " ***");
+                        System.out.println();
+                    }
                 });
 
                 Thread receiveMovimment = new Thread(() -> {
-                    if(!color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
-                        System.out.println("Aguardando a jogada do oponente...");
+                    try {
+                        if(!color.getColor().equals(chessMatch.getCurrentPlayer().getColor())) {
+                            String messageReceived = connection.receiveMessage();
+                            if(messageReceived == null) throw new Exception("Erro ao receber mensagem.");
+                            String[] movimment = messageReceived.split(" ");
 
-                        String[] movimment = connection.receiveMessage().split(" ");
+                            String sourceString = movimment[0];
+                            char sourceCol = sourceString.charAt(0);
+                            int sourceRow = Integer.parseInt(sourceString.substring(1));
 
-                        String sourceString = movimment[0];
-                        char sourceCol = sourceString.charAt(0);
-                        int sourceRow = Integer.parseInt(sourceString.substring(1));
+                            String targetString = movimment[1];
+                            char targetCol = targetString.charAt(0);
+                            int targetRow = Integer.parseInt(targetString.substring(1));
 
-                        String targetString = movimment[1];
-                        char targetCol = targetString.charAt(0);
-                        int targetRow = Integer.parseInt(targetString.substring(1));
+                            ChessPosition source = new ChessPosition(sourceCol, sourceRow);
+                            ChessPosition target = new ChessPosition(targetCol, targetRow);
 
-                        ChessPosition source = new ChessPosition(sourceCol, sourceRow);
-                        ChessPosition target = new ChessPosition(targetCol, targetRow);
+                            ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
+                            if(capturedPiece != null) captured.add(capturedPiece);
 
-                        ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
-                        if(capturedPiece != null) captured.add(capturedPiece);
-
-                        if(chessMatch.getPromoted() != null) {
-                            System.out.println("Oponente promoveu uma peça.");
+                            if(chessMatch.getPromoted() != null) {
+                                System.out.println("Oponente promoveu uma peça.");
+                            }
                         }
                     }
+                    catch (RuntimeException e) {
+                        System.out.println();
+                        System.out.println(e.getMessage());
+                        System.out.println();
+                    } catch (Exception e) {
+                        ((ChessMatch) chessMatch).setFailedConnection(true);
+                    }
                 });
+
+                if(chessMatch.getFailedConnection()) {
+                    System.out.println("Conexão perdida.");
+                    break;
+                }
 
                 sendMovimment.start();
                 receiveMovimment.start();
@@ -104,7 +126,8 @@ class Main {
                 receiveMovimment.join();
             }
             catch (Exception e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
+                break;
             }
         }
 

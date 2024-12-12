@@ -21,12 +21,23 @@ public class ChessMatch {
 
     private final List<Piece> piecesOnTheBoard = new ArrayList<>();
     private List<Piece> capturedPieces = new ArrayList<>();
+    ChessMatch chessMatch = new ChessMatch();
 
     public ChessMatch() {
         board = new Board(8, 8);
         turn = 1;
         currentPlayer = Color.WHITE;
         initialSetup();
+    }
+
+    private boolean failedConnection;
+
+    public boolean getFailedConnection() {
+        return failedConnection;
+    }
+
+    public void setFailedConnection(boolean failedConnection) {
+        this.failedConnection = failedConnection;
     }
 
     public int getTurn() {
